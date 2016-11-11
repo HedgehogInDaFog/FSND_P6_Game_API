@@ -27,6 +27,7 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
 
 MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 
+
 @endpoints.api(name='guess_a_number', version='v1')
 class GuessANumberApi(remote.Service):
     """Game API"""
@@ -143,11 +144,11 @@ class GuessANumberApi(remote.Service):
     @staticmethod
     def _cache_average_attempts():
         """Populates memcache with the average moves remaining of Games"""
-        games = Game.query(Game.game_over == False).fetch()
+        games = Game.query(Game.game_over is False).fetch()
         if games:
             count = len(games)
             total_attempts_remaining = sum([game.attempts_remaining
-                                        for game in games])
+                                           for game in games])
             average = float(total_attempts_remaining)/count
             memcache.set(MEMCACHE_MOVES_REMAINING,
                          'The average moves remaining is {:.2f}'.format(average))

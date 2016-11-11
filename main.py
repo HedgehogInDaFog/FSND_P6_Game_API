@@ -16,7 +16,7 @@ class SendReminderEmail(webapp2.RequestHandler):
         """Send a reminder email to each User with an email about games.
         Called every hour using a cron job"""
         app_id = app_identity.get_application_id()
-        users = User.query(User.email != None)
+        users = User.query(User.email is not None)
         for user in users:
             subject = 'This is a reminder!'
             body = 'Hello {}, try out Guess A Number!'.format(user.name)
