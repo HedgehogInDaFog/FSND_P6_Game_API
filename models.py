@@ -15,6 +15,65 @@ class User(ndb.Model):
 
 
 class Game(ndb.Model):
+    """Game object
+    board is array with 9 elements, containing one of this values:
+    ['', 'X', 'O'].
+    It can be logically interpreted as a tic-tac-toe board in a such way
+    (number is a list-element number):
+    [   ['0','1','2']
+        ['3','4','5'],
+        ['6','7','8'],
+    ]
+    Example:
+    board = ['', '', 'O', '', 'X', '', 'X', '', '']
+    logically means this state:
+    [  ['' , '', 'O'],
+       ['' ,'X', '' ],
+       ['X','' , '' ]
+    ]
+    """
+    board = ndb.StringProperty(repeated=True,
+                               default=['','','','','','','','',''])
+    user1_turn = ndb.BooleanProperty(required=True, default=True)
+    game_over = ndb.BooleanProperty(required=True, default=False)
+    user1 = ndb.KeyProperty(required=True, kind='User')
+    user2 = ndb.KeyProperty(required=True, kind='User')
+
+    @classmethod
+    def new_game(user1, user2):
+        """Creates and returns a new game"""
+        game = Game(user1=user1,
+                    user2=user2
+                    )
+        game.put()
+        return game
+    '''
+    TODO
+    def to_form(self, message):
+        """Returns a GameForm representation of the Game"""
+        form = GameForm()
+        form.urlsafe_key = self.key.urlsafe()
+        form.user_name = self.user.get().name
+        form.attempts_remaining = self.attempts_remaining
+        form.game_over = self.game_over
+        form.message = message
+        return form
+    '''
+
+    def end_game(self, won=False):
+        """Ends the game - if won is True, the player won. - if won is False,
+        the player lost."""
+        self.game_over = True
+        self.put()
+        # Add the game to the score 'board'
+        score = Score(user=self.user, date=date.today(), won=won,
+                      guesses=self.attempts_allowed - self.attempts_remaining)
+        score.put()
+'''
+# Old classes:
+
+
+class Game(ndb.Model):
     """Game object"""
     target = ndb.IntegerProperty(required=True)
     attempts_allowed = ndb.IntegerProperty(required=True)
@@ -106,3 +165,4 @@ class ScoreForms(messages.Message):
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
+'''
