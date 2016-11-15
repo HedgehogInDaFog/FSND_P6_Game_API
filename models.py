@@ -47,28 +47,80 @@ class Game(ndb.Model):
                     )
         game.put()
         return game
-    '''
-    TODO
+
     def to_form(self, message):
         """Returns a GameForm representation of the Game"""
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
-        form.user_name = self.user.get().name
-        form.attempts_remaining = self.attempts_remaining
+        form.user1 = self.user1.get().name
+        form.user2 = self.user2.get().name
+        form.board = self.board
         form.game_over = self.game_over
         form.message = message
         return form
-    '''
 
-    def end_game(self, won=False):
-        """Ends the game - if won is True, the player won. - if won is False,
-        the player lost."""
+    def end_game(self, result=1):
+        """Ends the game 
+        if result = 1: user1 won,
+        if result = 0: draw,
+        if result = -1: user2 won
+        """
         self.game_over = True
         self.put()
-        # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), won=won,
-                      guesses=self.attempts_allowed - self.attempts_remaining)
+        # Add the users results to the score 'board'
+        score = Score(user=self.user1, date=date.today(), result=result)
         score.put()
+        score = Score(user=self.user2, date=date.today(), result=result*(-1))
+        score.put()
+
+
+class Score(ndb.Model):
+    """Score object"""
+    user = ndb.KeyProperty(required=True, kind='User')
+    date = ndb.DateProperty(required=True)
+    result = ndb.IntegerProperty(required=True)
+
+    def to_form(self):
+        return ScoreForm(user_name=self.user.get().name, result=self.result,
+                         date=str(self.date))
+
+class ScoreForm(messages.Message):
+    """ScoreForm for outbound Score information"""
+    user_name = messages.StringField(1, required=True)
+    date = messages.StringField(2, required=True)
+    result = messages.IntegerField(3, required=True)
+
+
+class ScoreForms(messages.Message):
+    """Return multiple ScoreForms"""
+    # TODO: summary table
+    items = messages.MessageField(ScoreForm, 1, repeated=True)
+
+
+class GameForm(messages.Message):
+    """GameForm for outbound game state information"""
+    urlsafe_key = messages.StringField(1, required=True)
+    game_over = messages.BooleanField(2, required=True)
+    message = messages.StringField(3, required=True)
+    user1_name = messages.StringField(4, required=True)
+    user2_name = messages.StringField(5, required=True)
+    board = messages.StringField(6, required=True, repeated=True)
+
+
+class NewGameForm(messages.Message):
+    """Used to create a new game"""
+    user1_name = messages.StringField(1, required=True)
+    user2_name = messages.StringField(2, required=True)
+
+
+class MakeMoveForm(messages.Message):
+    """Used to make a move in an existing game"""
+    move = messages.IntegerField(1, required=True)
+
+
+class StringMessage(messages.Message):
+    """StringMessage-- outbound (single) string message"""
+    message = messages.StringField(1, required=True)
 '''
 # Old classes:
 
@@ -126,6 +178,18 @@ class Score(ndb.Model):
         return ScoreForm(user_name=self.user.get().name, won=self.won,
                          date=str(self.date), guesses=self.guesses)
 
+class ScoreForm(messages.Message):
+    """ScoreForm for outbound Score information"""
+    user_name = messages.StringField(1, required=True)
+    date = messages.StringField(2, required=True)
+    won = messages.BooleanField(3, required=True)
+    guesses = messages.IntegerField(4, required=True)
+
+
+class ScoreForms(messages.Message):
+    """Return multiple ScoreForms"""
+    items = messages.MessageField(ScoreForm, 1, repeated=True)
+
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
@@ -147,19 +211,6 @@ class NewGameForm(messages.Message):
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
     guess = messages.IntegerField(1, required=True)
-
-
-class ScoreForm(messages.Message):
-    """ScoreForm for outbound Score information"""
-    user_name = messages.StringField(1, required=True)
-    date = messages.StringField(2, required=True)
-    won = messages.BooleanField(3, required=True)
-    guesses = messages.IntegerField(4, required=True)
-
-
-class ScoreForms(messages.Message):
-    """Return multiple ScoreForms"""
-    items = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
 class StringMessage(messages.Message):
