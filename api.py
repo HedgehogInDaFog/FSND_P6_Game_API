@@ -25,11 +25,11 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 
-MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
+# MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING' TODO:delete
 
 
 @endpoints.api(name='guess_a_number', version='v1')
-class GuessANumberApi(remote.Service):
+class TicTacToeApi(remote.Service):
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -53,22 +53,15 @@ class GuessANumberApi(remote.Service):
                       http_method='POST')
     def new_game(self, request):
         """Creates new game"""
-        user = User.query(User.name == request.user_name).get()
-        if not user:
+        user1 = User.query(User.name == request.user1_name).get()
+        user2 = User.query(User.name == request.user2_name).get()
+        if not (user1 and user2):
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
-        try:
-            game = Game.new_game(user.key, request.min,
-                                 request.max, request.attempts)
-        except ValueError:
-            raise endpoints.BadRequestException('Maximum must be greater '
-                                                'than minimum!')
 
-        # Use a task queue to update the average attempts remaining.
-        # This operation is not needed to complete the creation of a new game
-        # so it is performed out of sequence.
-        taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Guess a Number!')
+        game = Game.new_game(user1.key, user2.key)
+
+        return game.to_form('Good luck playing Tic-tac-toe!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -82,6 +75,8 @@ class GuessANumberApi(remote.Service):
             return game.to_form('Time to make a move!')
         else:
             raise endpoints.NotFoundException('Game not found!')
+
+# TODO: all below this line _______________________________________________________________________S
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
